@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Saved Searches — LinkedIn Job Tracker{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Saved Searches</h1>
+  <p class="muted">The scheduler only runs enabled searches.</p>
+</div>
+
+<ul class="search-list">
+  {% for item in searches %}
+  <li class="search-card">
+    <form method="post" action="/settings/searches/{{ item.id }}/toggle" class="enable-form">
+      <label class="check">
+        <input type="checkbox" name="enabled" value="on" {% if item.enabled %}checked{% endif %} onchange="this.form.submit()">
+        <span>{{ item.name }}</span>
+      </label>
+    </form>
+    <p class="meta muted">
+      Keywords: {{ item.keywords }}<br>
+      Location: {{ item.location or "—" }}
+    </p>
+    <div class="row-actions">
+      <a class="btn btn-secondary" href="/settings?edit={{ item.id }}">Edit</a>
+      <form method="post" action="/settings/searches/{{ item.id }}/delete" onsubmit="return confirm('Delete this search?');">
+        <button type="submit" class="btn btn-danger">Delete</button>
+      </form>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+
+<section class="panel form-panel">
+  {% if editing %}
+  <h2>Edit search</h2>
+  <form method="post" action="/settings/searches/{{ editing.id }}/edit" class="search-form">
+    <label>Name <input name="name" value="{{ editing.name }}" required></label>
+    <label>Keywords <input name="keywords" value="{{ editing.keywords }}" required></label>
+    <label>Location <input name="location" value="{{ editing.location }}"></label>
+    <div class="row-actions">
+      <button type="submit" class="btn">Save changes</button>
+      <a class="btn btn-secondary" href="/settings">Cancel</a>
+    </div>
+  </form>
+  {% else %}
+  <h2>Add search</h2>
+  <form method="post" action="/settings/searches" class="search-form">
+    <label>Name <input name="name" placeholder="Python Backend Egypt" required></label>
+    <label>Keywords <input name="keywords" placeholder="Python Backend" required></label>
+    <label>Location <input name="location" placeholder="Egypt"></label>
+    <button type="submit" class="btn">Add Search</button>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

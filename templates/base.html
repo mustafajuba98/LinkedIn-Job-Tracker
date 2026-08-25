@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}LinkedIn Job Tracker{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <a href="/">LinkedIn Job Tracker</a>
+      <span class="badge {% if status.running %}ok{% else %}err{% endif %}">
+        Tracker: {% if status.running %}Running{% else %}Error{% endif %}
+      </span>
+    </div>
+    <nav>
+      <a href="/" class="{% if request.url.path == '/' %}active{% endif %}">Jobs</a>
+      <a href="/settings" class="{% if request.url.path == '/settings' %}active{% endif %}">Saved Searches</a>
+    </nav>
+    <div class="actions">
+      <span id="check-result" class="check-result"></span>
+      <button type="button" id="check-now" class="btn">Check Now</button>
+    </div>
+  </header>
+
+  {% if status.last_error %}
+  <div class="banner error">
+    Last error: {{ status.last_error }}
+  </div>
+  {% endif %}
+
+  <div class="layout">
+    <aside class="sidebar">
+      <section class="panel">
+        <h2>Status</h2>
+        <dl class="status-list">
+          <div>
+            <dt>Last check</dt>
+            <dd>{{ status.last_check_at | hm }}</dd>
+          </div>
+          <div>
+            <dt>Next check</dt>
+            <dd>{{ status.next_check_at | hm }}</dd>
+          </div>
+          <div>
+            <dt>Jobs stored</dt>
+            <dd>{{ status.jobs_stored }}</dd>
+          </div>
+          <div>
+            <dt>New jobs today</dt>
+            <dd>{{ status.new_jobs_today }}</dd>
+          </div>
+          <div>
+            <dt>Interval</dt>
+            <dd>{{ status.interval_minutes }} min</dd>
+          </div>
+        </dl>
+      </section>
+      {% block sidebar %}{% endblock %}
+    </aside>
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script>
+    const checkBtn = document.getElementById("check-now");
+    const checkResult = document.getElementById("check-result");
+
+    const stored = sessionStorage.getItem("checkResult");
+    if (stored && checkResult) {
+      try {
+        const data = JSON.parse(stored);
+        if (data.busy) {
+          checkResult.textContent = "A check is already running.";
+        } else {
+          let text = data.jobs_found + " jobs found · " + data.new_jobs + " new jobs";
+          if (data.error) text += " · some searches failed";
+          checkResult.textContent = text;
+        }
+      } catch (e) {}
+      sessionStorage.removeItem("checkResult");
+    }
+
+    if (checkBtn) {
+      checkBtn.addEventListener("click", async () => {
+        checkBtn.disabled = true;
+        checkResult.textContent = "Checking...";
+        try {
+          const res = await fetch("/check-now", { method: "POST" });
+          const data = await res.json();
+          sessionStorage.setItem("checkResult", JSON.stringify(data));
+          window.location.reload();
+        } catch (e) {
+          checkResult.textContent = "Check failed.";
+          checkBtn.disabled = false;
+        }
+      });
+    }
+
+    const filterForm = document.getElementById("filter-form");
+    if (filterForm) {
+      filterForm.querySelectorAll("select").forEach((el) => {
+        el.addEventListener("change", () => filterForm.submit());
+      });
+    }
+  </script>
+</body>
+</html>
